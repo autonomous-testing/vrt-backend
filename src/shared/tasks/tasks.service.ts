@@ -15,26 +15,28 @@ export class TasksService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanOldTestVariations() {
-    const projects = await this.prismaService.project.findMany();
+    this.logger.debug("WOPEE - Do nothing fix.")
 
-    for (const project of projects) {
-      const dateRemoveAfter: Date = new Date();
-      dateRemoveAfter.setDate(dateRemoveAfter.getDate() - project.maxBranchLifetime);
+    // const projects = await this.prismaService.project.findMany();
 
-      const testVariations = await this.prismaService.testVariation.findMany({
-        where: {
-          projectId: project.id,
-          updatedAt: { lte: dateRemoveAfter },
-          branchName: { not: project.mainBranchName },
-        },
-      });
-      this.logger.debug(
-        `Removing ${testVariations.length} TestVariations for ${project.name} later than ${dateRemoveAfter}`
-      );
+    // for (const project of projects) {
+      // const dateRemoveAfter: Date = new Date();
+      // dateRemoveAfter.setDate(dateRemoveAfter.getDate() - project.maxBranchLifetime);
 
-      for (const testVariation of testVariations) {
-        await this.testVariationService.delete(testVariation.id);
-      }
-    }
+      // const testVariations = await this.prismaService.testVariation.findMany({
+        // where: {
+          // projectId: project.id,
+          // updatedAt: { lte: dateRemoveAfter },
+          // branchName: { not: project.mainBranchName },
+        // },
+      // });
+      // this.logger.debug(
+        // `Removing ${testVariations.length} TestVariations for ${project.name} later than ${dateRemoveAfter}`
+      // );
+
+      // for (const testVariation of testVariations) {
+        // await this.testVariationService.delete(testVariation.id);
+      // }
+    // }
   }
 }
