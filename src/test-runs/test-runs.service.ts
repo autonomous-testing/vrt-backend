@@ -152,6 +152,64 @@ export class TestRunsService {
     return this.setStatus(id, status);
   }
 
+  /**
+   * Confirm difference for testRun
+   */
+  async approveWithIgnoreAreasFromFeatureBranch(id: string, featureBranch: string, userId?: string): Promise<TestRun> {
+    this.logger.log(`Approving testRun: ${id} featureBranch: ${featureBranch}`);
+    const testRun = await this.findOne(id);
+    let { testVariation } = testRun;
+    if (!testVariation) {
+      throw new Error('No test variation found. Re-create test run');
+    }
+
+    const baseline = this.staticService.getImage(testRun.imageName);
+    const baselineName = this.staticService.saveImage('baseline', PNG.sync.write(baseline));
+
+    const previousTestRuns = await this.prismaService.testRun.findMany({
+      where: {
+        name: testRun.name,
+        branchName: featureBranch,
+        browser: testRun.browser,
+        device: testRun.device,
+        os: testRun.os,
+        viewport: testRun.viewport,
+        customTags: testRun.customTags,
+        projectId: testRun.projectId,
+        merge: false,
+        OR: [{ status: TestStatus.approved }, { status: TestStatus.ok }],
+        createdAt: {
+          lte: testRun.createdAt,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const tempIgnoreAreas = JSON.parse(previousTestRuns[0].tempIgnoreAreas) ?? [];
+    const ignoreAreas = JSON.parse(previousTestRuns[0].ignoreAreas).map(({ id, ...rest }) => rest) ?? [];
+    const allIgnoreAreas = ignoreAreas.concat(tempIgnoreAreas);
+
+    await this.testVariationService.update(
+      testVariation.id,
+      {
+        ignoreAreas: JSON.stringify(allIgnoreAreas),
+      },
+      testRun.id
+    );
+
+    await this.testVariationService.addBaseline({
+      id: testVariation.id,
+      userId,
+      testRunId: testRun.id,
+      baselineName,
+    });
+
+    const status = TestStatus.approved;
+    return this.setStatus(id, status);
+  }
+
   async setStatus(id: string, status: TestStatus): Promise<TestRun> {
     const testRun = await this.prismaService.testRun.update({
       where: { id },
