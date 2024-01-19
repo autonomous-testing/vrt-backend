@@ -89,7 +89,7 @@ export class TestRunsController {
     @Body() ids: string[],
     @Query('featureBranch') featureBranch: string
   ): Promise<void> {
-    this.logger.debug(`Going to approve with migrating ignoreAreas from feature branch TestRuns: ${ids}`);
+    this.logger.debug(`Going to approve with migrating ignoreAreas from feature branch: ${featureBranch}, TestRuns: ${ids}`);
     for (const id of ids) {
       await this.testRunsService.approveWithIgnoreAreasFromFeatureBranch(id, featureBranch, user.id);
     }

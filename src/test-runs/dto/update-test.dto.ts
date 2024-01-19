@@ -5,4 +5,6 @@ export class UpdateTestRunDto {
   @ApiProperty()
   @IsString()
   readonly comment: string;
+  readonly tempIgnoreAreas?: string;
+  readonly ignoreAreas?: string;
 }

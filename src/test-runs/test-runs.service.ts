@@ -187,9 +187,47 @@ export class TestRunsService {
       },
     });
 
-    const tempIgnoreAreas = JSON.parse(previousTestRuns[0].tempIgnoreAreas) ?? [];
-    const ignoreAreas = JSON.parse(previousTestRuns[0].ignoreAreas).map(({ id, ...rest }) => rest) ?? [];
-    const allIgnoreAreas = ignoreAreas.concat(tempIgnoreAreas);
+    let tempIgnoreAreas = [];
+    try {
+      tempIgnoreAreas = JSON.parse(previousTestRuns[0].tempIgnoreAreas);
+      this.logger.debug(`Parsing temp ignore areas: ${JSON.stringify(tempIgnoreAreas)}.`);
+    } catch {
+      this.logger.debug(`There are no tempIgnoreAreas for test run ${id}.`);
+    }
+    let ignoreAreas = [];
+    try {
+      ignoreAreas = JSON.parse(previousTestRuns[0].ignoreAreas).map(({ id, ...rest }) => rest);
+      this.logger.debug(`Parsing ignore areas: ${JSON.stringify(ignoreAreas)}.`);
+    } catch {
+      this.logger.debug(`There are no ignoreAreas for test run ${id}.`);
+    }
+    let allIgnoreAreas = ignoreAreas.concat(tempIgnoreAreas);
+    allIgnoreAreas.forEach((item) => {
+      const id = Date.now() - Math.floor(Math.random() * 10000) + 1;
+      item.id = id.toString();
+    });
+
+    // cleanup current ignore areas
+    await this.testVariationService.update(
+      testVariation.id,
+      {
+        ignoreAreas: JSON.stringify([]),
+      },
+      testRun.id
+    );
+    const currentRun = await this.findOne(id);
+    await this.update(id, {
+      comment: currentRun.comment,
+      tempIgnoreAreas: JSON.stringify([]),
+      ignoreAreas: JSON.stringify([]),
+    });
+
+    try {
+      this.logger.debug(`Migrating ignore areas ${JSON.stringify(allIgnoreAreas)}`);
+      this.updateIgnoreAreas(id, allIgnoreAreas);
+    } catch {
+      this.logger.error(`Error during adding ignore areas for test run ${id}.`);
+    }
 
     await this.testVariationService.update(
       testVariation.id,
@@ -344,6 +382,8 @@ export class TestRunsService {
         where: { id },
         data: {
           comment: data.comment,
+          ignoreAreas: data.ignoreAreas,
+          tempIgnoreAreas: data.tempIgnoreAreas,
         },
       })
       .then(async (testRun) => {
