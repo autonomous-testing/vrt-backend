@@ -175,6 +175,8 @@ export class TestVariationsService {
       branchName: toBranch,
       projectId,
     });
+    this.logger.debug(`Merge build created: ${JSON.stringify(build, null, 0)}`);
+    const buildId = build.id;
 
     // find source branch variations
     const testVariations: TestVariation[] = await this.prismaService.testVariation.findMany({
@@ -182,9 +184,29 @@ export class TestVariationsService {
     });
 
     // compare source to destination branch variations
+    const numberOfSourceBranchTestVariation = testVariations.length;
+    this.logger.debug(
+      `Merge build ${buildId}: Total number of source branch test variations to be processed: ${numberOfSourceBranchTestVariation}.`
+    );
+    let ithNumberOfSourceBranchTestVariationCounter = 1;
     for (const sourceBranchTestVariation of testVariations) {
+      this.logger.debug(
+        `Merge build ${buildId}: Processing source branch test variation: ${ithNumberOfSourceBranchTestVariationCounter}/${numberOfSourceBranchTestVariation} : ${JSON.stringify(
+          sourceBranchTestVariation,
+          null,
+          0
+        )}`
+      );
+      ithNumberOfSourceBranchTestVariationCounter = ithNumberOfSourceBranchTestVariationCounter + 1;
       const baseline = this.staticService.getImage(sourceBranchTestVariation.baselineName);
       if (baseline) {
+        this.logger.debug(
+          `Merge build ${buildId}: Processing baseline of source branch test variation: ${ithNumberOfSourceBranchTestVariationCounter}/${numberOfSourceBranchTestVariation} : ${JSON.stringify(
+            sourceBranchTestVariation,
+            null,
+            0
+          )}`
+        );
         // get destination branch request
         const createTestRequestDto: CreateTestRequestDto = {
           ...sourceBranchTestVariation,
@@ -212,11 +234,19 @@ export class TestVariationsService {
           imageBuffer: PNG.sync.write(baseline),
         });
 
+        this.logger.debug(
+          `Merge build ${buildId}: Calculating difference of new testRun based of source branch test variation: ${ithNumberOfSourceBranchTestVariationCounter}/${numberOfSourceBranchTestVariation} : ${JSON.stringify(
+            testRun,
+            null,
+            0
+          )}`
+        );
         await this.testRunsService.calculateDiff(projectId, testRun);
       }
     }
 
     // stop build
+    this.logger.debug(`Merge build ${buildId}: Stopping the build.`);
     return this.buildsService.update(build.id, { isRunning: false });
   }
 

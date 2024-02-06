@@ -1,4 +1,4 @@
-import { Controller, ParseUUIDPipe, Get, UseGuards, Param, Query, Delete } from '@nestjs/common';
+import { Controller, ParseUUIDPipe, Get, UseGuards, Param, Query, Delete, Logger } from '@nestjs/common';
 import { ApiTags, ApiParam, ApiBearerAuth, ApiQuery, ApiOkResponse } from '@nestjs/swagger';
 import { TestVariationsService } from './test-variations.service';
 import { TestVariation, Baseline, Role } from '@prisma/client';
@@ -13,6 +13,7 @@ import { MergeParams } from './types';
 @Controller('test-variations')
 export class TestVariationsController {
   constructor(private testVariations: TestVariationsService, private prismaService: PrismaService) {}
+  private readonly logger: Logger = new Logger(TestVariationsController.name);
 
   @Get()
   @ApiQuery({ name: 'projectId', required: true })
@@ -42,6 +43,7 @@ export class TestVariationsController {
   @Roles(Role.admin, Role.editor)
   merge(@Query() params: MergeParams): Promise<BuildDto> {
     const { projectId, fromBranch, toBranch } = params;
+    this.logger.debug(`Going to merge from branch: ${fromBranch} to branch: ${toBranch} under project: ${projectId}`);
     return this.testVariations.merge(projectId, fromBranch, toBranch);
   }
 
