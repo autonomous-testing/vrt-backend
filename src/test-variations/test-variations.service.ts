@@ -61,7 +61,7 @@ export class TestVariationsService {
   }
 
   async update(id: string, data: TestVariationUpdateDto, testRunId?: string): Promise<TestVariation> {
-    return this.prismaService.testVariation.update({
+    return await this.prismaService.testVariation.update({
       where: { id },
       data: {
         baselineName: data.baselineName,
@@ -116,14 +116,14 @@ export class TestVariationsService {
   /**
    * Creates empty test variation (no baseline)
    */
-  create({
+  async create({
     testRunId,
     createTestRequestDto,
   }: {
     testRunId?: string;
     createTestRequestDto: Omit<CreateTestRequestDto, 'buildId' | 'ignoreAreas'>;
   }): Promise<TestVariation> {
-    return this.prismaService.testVariation.create({
+    return await this.prismaService.testVariation.create({
       data: {
         project: { connect: { id: createTestRequestDto.projectId } },
         testRuns: testRunId ? { connect: { id: testRunId } } : undefined,
@@ -144,7 +144,7 @@ export class TestVariationsService {
     testRunId: string;
     baselineName: string;
   }): Promise<TestVariation> {
-    return this.prismaService.testVariation.update({
+    return await this.prismaService.testVariation.update({
       where: { id },
       data: {
         baselineName,

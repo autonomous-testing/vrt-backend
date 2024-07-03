@@ -39,7 +39,7 @@ export class TestRunsService {
       testVariation?: TestVariation;
     }
   > {
-    return this.prismaService.testRun.findUnique({
+    return await this.prismaService.testRun.findUnique({
       where: { id },
       include: {
         testVariation: true,
@@ -149,7 +149,7 @@ export class TestRunsService {
 
     // update status
     const status = autoApprove ? TestStatus.autoApproved : TestStatus.approved;
-    return this.setStatus(id, status);
+    return await this.setStatus(id, status);
   }
 
   /**
@@ -224,7 +224,7 @@ export class TestRunsService {
 
     try {
       this.logger.debug(`Migrating ignore areas ${JSON.stringify(allIgnoreAreas)}`);
-      this.updateIgnoreAreas(id, allIgnoreAreas);
+      await this.updateIgnoreAreas(id, allIgnoreAreas);
     } catch {
       this.logger.error(`Error during adding ignore areas for test run ${id}.`);
     }
@@ -245,7 +245,7 @@ export class TestRunsService {
     });
 
     const status = TestStatus.approved;
-    return this.setStatus(id, status);
+    return await this.setStatus(id, status);
   }
 
   async setStatus(id: string, status: TestStatus): Promise<TestRun> {
@@ -257,7 +257,7 @@ export class TestRunsService {
     });
 
     this.eventsGateway.testRunUpdated(testRun);
-    return this.findOne(id);
+    return await this.findOne(id);
   }
 
   async saveDiffResult(id: string, diffResult: DiffResult): Promise<TestRun> {
@@ -289,7 +289,7 @@ export class TestRunsService {
         saveDiffAsFile: true,
       },
     });
-    return this.saveDiffResult(testRun.id, diffResult);
+    return await this.saveDiffResult(testRun.id, diffResult);
   }
 
   async create({
@@ -366,7 +366,7 @@ export class TestRunsService {
         const testVariation = await this.testVariationService.update(testRun.testVariationId, {
           ignoreAreas: testRun.ignoreAreas,
         });
-        return this.calculateDiff(testVariation.projectId, testRun);
+        return await this.calculateDiff(testVariation.projectId, testRun);
       });
   }
 

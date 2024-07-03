@@ -51,16 +51,16 @@ export class TestRunsController {
   @ApiOkResponse({ type: [TestRunDto] })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  get(@Query('buildId', new ParseUUIDPipe()) buildId: string): Promise<TestRunDto[]> {
-    return this.testRunsService.findMany(buildId);
+  async get(@Query('buildId', new ParseUUIDPipe()) buildId: string): Promise<TestRunDto[]> {
+    return await this.testRunsService.findMany(buildId);
   }
 
   @Get(':id')
   @ApiOkResponse({ type: TestRunDto })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  getDetails(@Param('id', new ParseUUIDPipe()) id: string): Promise<TestRunDto> {
-    return this.testRunsService.findOne(id);
+  async getDetails(@Param('id', new ParseUUIDPipe()) id: string): Promise<TestRunDto> {
+    return await this.testRunsService.findOne(id);
   }
 
   @Post('approve')
