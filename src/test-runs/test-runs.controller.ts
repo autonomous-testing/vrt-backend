@@ -39,6 +39,7 @@ import { UpdateTestRunDto } from './dto/update-test.dto';
 import { CurrentUser } from '../shared/current-user.decorator';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Roles } from '../shared/roles.decorator';
+import { List } from 'lodash';
 
 @ApiTags('test-runs')
 @Controller('test-runs')
@@ -72,11 +73,15 @@ export class TestRunsController {
     @CurrentUser() user: User,
     @Body() ids: string[],
     @Query('merge', new ParseBoolPipe()) merge: boolean
-  ): Promise<void> {
+  ): Promise<TestRun[]> {
     this.logger.debug(`Going to approve TestRuns: ${ids}`);
+    const testRuns = [];
     for (const id of ids) {
-      await this.testRunsService.approve(id, merge, false, user.id);
+      const testRun = await this.testRunsService.approve(id, merge, false, user.id);
+      testRuns.push(testRun);
     }
+    console.log(`Updated testRuns: ${JSON.stringify(testRuns)}`);
+    return testRuns;
   }
 
   @Post('approveWithIgnoreAreasFromFeatureBranch')
@@ -88,22 +93,32 @@ export class TestRunsController {
     @CurrentUser() user: User,
     @Body() ids: string[],
     @Query('featureBranch') featureBranch: string
-  ): Promise<void> {
-    this.logger.debug(`Going to approve with migrating ignoreAreas from feature branch: ${featureBranch}, TestRuns: ${ids}`);
+  ): Promise<TestRun[]> {
+    this.logger.debug(
+      `Going to approve with migrating ignoreAreas from feature branch: ${featureBranch}, TestRuns: ${ids}`
+    );
+    const testRuns = [];
     for (const id of ids) {
-      await this.testRunsService.approveWithIgnoreAreasFromFeatureBranch(id, featureBranch, user.id);
+      const testRun = await this.testRunsService.approveWithIgnoreAreasFromFeatureBranch(id, featureBranch, user.id);
+      testRuns.push(testRun);
     }
+    console.log(`Updated testRuns: ${JSON.stringify(testRuns)}`);
+    return testRuns;
   }
 
   @Post('reject')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.admin, Role.editor)
-  async reject(@Body() ids: string[]): Promise<void> {
+  async reject(@Body() ids: string[]): Promise<TestRun[]> {
     this.logger.debug(`Going to reject TestRuns: ${ids}`);
+    const testRuns = [];
     for (const id of ids) {
-      await this.testRunsService.setStatus(id, TestStatus.failed);
+      const testRun = await this.testRunsService.setStatus(id, TestStatus.failed);
+      testRuns.push(testRun);
     }
+    console.log(`Updated testRuns: ${JSON.stringify(testRuns)}`);
+    return testRuns;
   }
 
   @Post('delete')
@@ -121,11 +136,15 @@ export class TestRunsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles(Role.admin, Role.editor)
-  async updateIgnoreAreas(@Body() data: UpdateIgnoreAreasDto): Promise<void> {
+  async updateIgnoreAreas(@Body() data: UpdateIgnoreAreasDto): Promise<TestRun[]> {
     this.logger.debug(`Going to update IgnoreAreas for TestRuns: ${data.ids}`);
+    const testRuns = [];
     for (const id of data.ids) {
-      await this.testRunsService.updateIgnoreAreas(id, data.ignoreAreas);
+      const testRun = await this.testRunsService.updateIgnoreAreas(id, data.ignoreAreas);
+      testRuns.push(testRun);
     }
+    console.log(`Updated testRuns: ${JSON.stringify(testRuns)}`);
+    return testRuns;
   }
 
   @Post('ignoreAreas/add')

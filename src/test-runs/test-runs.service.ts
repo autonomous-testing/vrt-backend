@@ -149,7 +149,8 @@ export class TestRunsService {
 
     // update status
     const status = autoApprove ? TestStatus.autoApproved : TestStatus.approved;
-    return await this.setStatus(id, status);
+    const updatedTestRun = await this.setStatus(id, status);
+    return updatedTestRun;
   }
 
   /**
