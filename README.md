@@ -3,6 +3,20 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/7d43b68b39cd41aa830120371be736ad)](https://www.codacy.com/gh/Visual-Regression-Tracker/backend?utm_source=github.com&utm_medium=referral&utm_content=Visual-Regression-Tracker/backend&utm_campaign=Badge_Grade)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/7d43b68b39cd41aa830120371be736ad)](https://www.codacy.com/gh/Visual-Regression-Tracker/backend?utm_source=github.com&utm_medium=referral&utm_content=Visual-Regression-Tracker/backend&utm_campaign=Badge_Coverage)
 
+## Local run using Docker
+
+Just replace `...` with your database url in the following command
+
+```
+docker run --rm -it -v $(pwd):/app -w /app -p 4200:4200 --platform linux/amd64 node:14-alpine3.17 /bin/sh -c "npm i && export DATABASE_URL='...' && npm run start"
+```
+
+for debuging just use:
+
+```
+docker run --rm -it -v $(pwd):/app -w /app -p 4200:4200 -p 9229:9229 --platform linux/amd64 node:14-alpine3.17 /bin/sh -c "npm i && export DATABASE_URL='...' && npx nest start --debug 0.0.0.0:9229 --watch"
+```
+
 ## Local setup
 
 - Install Node `14`
