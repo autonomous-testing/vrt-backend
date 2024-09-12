@@ -177,7 +177,6 @@ export class TestRunsService {
         viewport: testRun.viewport,
         customTags: testRun.customTags,
         projectId: testRun.projectId,
-        merge: false,
         OR: [{ status: TestStatus.approved }, { status: TestStatus.ok }],
         createdAt: {
           lte: testRun.createdAt,
@@ -208,17 +207,8 @@ export class TestRunsService {
       item.id = id.toString();
     });
 
-    // cleanup current ignore areas
-    await this.testVariationService.update(
-      testVariation.id,
-      {
-        ignoreAreas: JSON.stringify([]),
-      },
-      testRun.id
-    );
-    const currentRun = await this.findOne(id);
     await this.update(id, {
-      comment: currentRun.comment,
+      comment: testRun.comment,
       tempIgnoreAreas: JSON.stringify([]),
       ignoreAreas: JSON.stringify([]),
     });
@@ -229,14 +219,6 @@ export class TestRunsService {
     } catch {
       this.logger.error(`Error during adding ignore areas for test run ${id}.`);
     }
-
-    await this.testVariationService.update(
-      testVariation.id,
-      {
-        ignoreAreas: JSON.stringify(allIgnoreAreas),
-      },
-      testRun.id
-    );
 
     await this.testVariationService.addBaseline({
       id: testVariation.id,
