@@ -286,7 +286,7 @@ export class TestRunsService {
   }): Promise<TestRun> {
     // save image
     const imageName = this.staticService.saveImage('screenshot', imageBuffer);
-
+    const isMergeRun = createTestRequestDto.merge;
     const testRun = await this.prismaService.testRun.create({
       data: {
         imageName,
@@ -308,8 +308,10 @@ export class TestRunsService {
         ...getTestVariationUniqueData(testVariation),
         baselineName: testVariation.baselineName,
         baselineBranchName: testVariation.branchName,
-        ignoreAreas: testVariation.ignoreAreas,
-        tempIgnoreAreas: JSON.stringify(createTestRequestDto.ignoreAreas),
+        ignoreAreas: isMergeRun
+          ? JSON.stringify(JSON.parse(testVariation.ignoreAreas).concat(createTestRequestDto.ignoreAreas))
+          : testVariation.ignoreAreas,
+        tempIgnoreAreas: isMergeRun ? JSON.stringify([]) : JSON.stringify(createTestRequestDto.ignoreAreas),
         comment: createTestRequestDto.comment || testVariation.comment,
         diffTollerancePercent: createTestRequestDto.diffTollerancePercent,
         branchName: createTestRequestDto.branchName,
