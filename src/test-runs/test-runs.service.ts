@@ -287,6 +287,13 @@ export class TestRunsService {
     // save image
     const imageName = this.staticService.saveImage('screenshot', imageBuffer);
     const isMergeRun = createTestRequestDto.merge;
+    let ignoreAreasWithIds = [];
+    if (isMergeRun) {
+      ignoreAreasWithIds = createTestRequestDto.ignoreAreas.map((item) => {
+        const id = Date.now() - Math.floor(Math.random() * 10000) + 1;
+        return { ...item, id: id.toString() };
+      });
+    }
     const testRun = await this.prismaService.testRun.create({
       data: {
         imageName,
@@ -309,7 +316,7 @@ export class TestRunsService {
         baselineName: testVariation.baselineName,
         baselineBranchName: testVariation.branchName,
         ignoreAreas: isMergeRun
-          ? JSON.stringify(JSON.parse(testVariation.ignoreAreas).concat(createTestRequestDto.ignoreAreas))
+          ? JSON.stringify(JSON.parse(testVariation.ignoreAreas).concat(ignoreAreasWithIds))
           : testVariation.ignoreAreas,
         tempIgnoreAreas: isMergeRun ? JSON.stringify([]) : JSON.stringify(createTestRequestDto.ignoreAreas),
         comment: createTestRequestDto.comment || testVariation.comment,
