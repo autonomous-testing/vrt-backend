@@ -13,6 +13,7 @@ import { TestRunDto } from './dto/testRun.dto';
 import { getTestVariationUniqueData } from '../utils';
 import { CompareService } from '../compare/compare.service';
 import { UpdateTestRunDto } from './dto/update-test.dto';
+import { CreateTestRequestMultipartBaselineBranchDto } from './dto/create-test-request-multipart.dto';
 
 @Injectable()
 export class TestRunsService {
@@ -88,6 +89,43 @@ export class TestRunsService {
       testRunWithResult = await this.tryAutoApproveByPastBaselines({ testVariation, testRun: testRunWithResult });
       testRunWithResult = await this.tryAutoApproveByNewBaselines({ testVariation, testRun: testRunWithResult });
     }
+    return new TestRunResultDto(testRunWithResult, testVariation);
+  }
+
+  async postTestRunBaselineBranch({
+    createTestRequestDto,
+    imageBuffer,
+  }: {
+    createTestRequestDto: CreateTestRequestMultipartBaselineBranchDto;
+    imageBuffer: Buffer;
+  }): Promise<TestRunResultDto> {
+    let testVariation = await this.testVariationService.findBaselineBranch(createTestRequestDto);
+
+    // creates variatioin if does not exist
+    if (!testVariation) {
+      testVariation = await this.testVariationService.create({
+        createTestRequestDto,
+      });
+    }
+
+    // delete previous test run if exists
+    const [previousTestRun] = await this.prismaService.testRun.findMany({
+      where: {
+        buildId: createTestRequestDto.buildId,
+        branchName: createTestRequestDto.branchName,
+        ...getTestVariationUniqueData(createTestRequestDto),
+        NOT: { OR: [{ status: TestStatus.approved }, { status: TestStatus.autoApproved }] },
+      },
+    });
+    if (!!previousTestRun) {
+      await this.delete(previousTestRun.id);
+    }
+
+    const testRun = await this.create({ testVariation, createTestRequestDto, imageBuffer });
+
+    // calculate diff
+    let testRunWithResult = await this.calculateDiff(createTestRequestDto.projectId, testRun);
+
     return new TestRunResultDto(testRunWithResult, testVariation);
   }
 
