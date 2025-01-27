@@ -32,14 +32,13 @@ import { ApiGuard } from '../auth/guards/api.guard';
 import { TestRunDto } from './dto/testRun.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateTestRequestBase64Dto } from './dto/create-test-request-base64.dto';
-import { CreateTestRequestMultipartDto } from './dto/create-test-request-multipart.dto';
+import { CreateTestRequestMultipartDto, CreateTestRequestMultipartBaselineBranchDto } from './dto/create-test-request-multipart.dto';
 import { FileToBodyInterceptor } from '../shared/fite-to-body.interceptor';
 import { UpdateIgnoreAreasDto } from './dto/update-ignore-area.dto';
 import { UpdateTestRunDto } from './dto/update-test.dto';
 import { CurrentUser } from '../shared/current-user.decorator';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { Roles } from '../shared/roles.decorator';
-import { List } from 'lodash';
 
 @ApiTags('test-runs')
 @Controller('test-runs')
@@ -193,5 +192,19 @@ export class TestRunsController {
   postTestRunMultipart(@Body() createTestRequestDto: CreateTestRequestMultipartDto): Promise<TestRunResultDto> {
     const imageBuffer = createTestRequestDto.image.buffer;
     return this.testRunsService.postTestRun({ createTestRequestDto, imageBuffer });
+  }
+
+  @Post('/multipartBaselineBranch')
+  @ApiSecurity('api_key')
+  @ApiBody({ type: CreateTestRequestMultipartBaselineBranchDto })
+  @ApiOkResponse({ type: TestRunResultDto })
+  @ApiConsumes('multipart/form-data')
+  @UseGuards(ApiGuard, RoleGuard)
+  @Roles(Role.admin, Role.editor)
+  @UseInterceptors(FileInterceptor('image'), FileToBodyInterceptor)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  postTestRunMultipartBaselineBranch(@Body() createTestRequestDto: CreateTestRequestMultipartBaselineBranchDto): Promise<TestRunResultDto> {
+    const imageBuffer = createTestRequestDto.image.buffer;
+    return this.testRunsService.postTestRunBaselineBranch({ createTestRequestDto, imageBuffer });
   }
 }

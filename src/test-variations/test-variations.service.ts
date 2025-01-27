@@ -113,6 +113,31 @@ export class TestVariationsService {
     }
   }
 
+    async findBaselineBranch(
+      createTestRequestDto: BaselineDataDto & { projectId: string; baselineBranchName?: string }
+    ): Promise<TestVariation | null> {
+      const baselineBranchName = createTestRequestDto.baselineBranchName ?? createTestRequestDto.branchName;
+  
+      const [baselineBranchTestVariation, currentBranchTestVariation] = await Promise.all([
+        this.findUnique({
+          projectId: createTestRequestDto.projectId,
+          branchName: baselineBranchName,
+          ...getTestVariationUniqueData(createTestRequestDto),
+        }),
+        createTestRequestDto.branchName !== baselineBranchName &&
+          this.findUnique({
+            projectId: createTestRequestDto.projectId,
+            branchName: createTestRequestDto.branchName,
+            ...getTestVariationUniqueData(createTestRequestDto),
+          }),
+      ]);
+  
+      if (!!baselineBranchTestVariation) {
+        return baselineBranchTestVariation;
+      }
+      return currentBranchTestVariation;
+    }
+
   /**
    * Creates empty test variation (no baseline)
    */
