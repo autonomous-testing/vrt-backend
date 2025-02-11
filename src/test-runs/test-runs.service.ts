@@ -14,6 +14,7 @@ import { getTestVariationUniqueData } from '../utils';
 import { CompareService } from '../compare/compare.service';
 import { UpdateTestRunDto } from './dto/update-test.dto';
 import { CreateTestRequestMultipartBaselineBranchDto } from './dto/create-test-request-multipart.dto';
+import { CreateTestRequestBase64BaselineBranchDto } from './dto/create-test-request-base64.dto';
 
 @Injectable()
 export class TestRunsService {
@@ -96,12 +97,12 @@ export class TestRunsService {
     createTestRequestDto,
     imageBuffer,
   }: {
-    createTestRequestDto: CreateTestRequestMultipartBaselineBranchDto;
+    createTestRequestDto: CreateTestRequestMultipartBaselineBranchDto | CreateTestRequestBase64BaselineBranchDto;
     imageBuffer: Buffer;
   }): Promise<TestRunResultDto> {
     let testVariation = await this.testVariationService.findBaselineBranch(createTestRequestDto);
 
-    // creates variatioin if does not exist
+    // creates variation if does not exist
     if (!testVariation) {
       testVariation = await this.testVariationService.create({
         createTestRequestDto,

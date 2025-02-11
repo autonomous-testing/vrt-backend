@@ -31,8 +31,14 @@ import { TestRunResultDto } from './dto/testRunResult.dto';
 import { ApiGuard } from '../auth/guards/api.guard';
 import { TestRunDto } from './dto/testRun.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { CreateTestRequestBase64Dto } from './dto/create-test-request-base64.dto';
-import { CreateTestRequestMultipartDto, CreateTestRequestMultipartBaselineBranchDto } from './dto/create-test-request-multipart.dto';
+import {
+  CreateTestRequestBase64BaselineBranchDto,
+  CreateTestRequestBase64Dto,
+} from './dto/create-test-request-base64.dto';
+import {
+  CreateTestRequestMultipartDto,
+  CreateTestRequestMultipartBaselineBranchDto,
+} from './dto/create-test-request-multipart.dto';
 import { FileToBodyInterceptor } from '../shared/fite-to-body.interceptor';
 import { UpdateIgnoreAreasDto } from './dto/update-ignore-area.dto';
 import { UpdateTestRunDto } from './dto/update-test.dto';
@@ -180,6 +186,21 @@ export class TestRunsController {
     });
   }
 
+  @Post('/baselineBranch')
+  @ApiSecurity('api_key')
+  @ApiOkResponse({ type: TestRunResultDto })
+  @UseGuards(ApiGuard, RoleGuard)
+  @Roles(Role.admin, Role.editor)
+  postTestRunBaselineBranch(
+    @Body() createTestRequestDto: CreateTestRequestBase64BaselineBranchDto
+  ): Promise<TestRunResultDto> {
+    const imageBuffer = Buffer.from(createTestRequestDto.imageBase64, 'base64');
+    return this.testRunsService.postTestRunBaselineBranch({
+      createTestRequestDto,
+      imageBuffer,
+    });
+  }
+
   @Post('/multipart')
   @ApiSecurity('api_key')
   @ApiBody({ type: CreateTestRequestMultipartDto })
@@ -203,7 +224,9 @@ export class TestRunsController {
   @Roles(Role.admin, Role.editor)
   @UseInterceptors(FileInterceptor('image'), FileToBodyInterceptor)
   @UsePipes(new ValidationPipe({ transform: true }))
-  postTestRunMultipartBaselineBranch(@Body() createTestRequestDto: CreateTestRequestMultipartBaselineBranchDto): Promise<TestRunResultDto> {
+  postTestRunMultipartBaselineBranch(
+    @Body() createTestRequestDto: CreateTestRequestMultipartBaselineBranchDto
+  ): Promise<TestRunResultDto> {
     const imageBuffer = createTestRequestDto.image.buffer;
     return this.testRunsService.postTestRunBaselineBranch({ createTestRequestDto, imageBuffer });
   }
