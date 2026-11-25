@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { PNG } from 'pngjs';
 import { CreateTestRequestDto } from './dto/create-test-request.dto';
 import { IgnoreAreaDto } from './dto/ignore-area.dto';
+import { mergeIgnoreAreas, parseIgnoreAreas } from './ignore-areas';
 import { StaticService } from '../shared/static/static.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Baseline, TestRun, TestStatus, TestVariation } from '@prisma/client';
@@ -233,30 +234,21 @@ export class TestRunsService {
       },
     });
 
-    let tempIgnoreAreas = [];
-    try {
-      tempIgnoreAreas = JSON.parse(previousTestRuns[0].tempIgnoreAreas);
-      this.logger.debug(`Parsing temp ignore areas: ${JSON.stringify(tempIgnoreAreas)}.`);
-    } catch {
-      this.logger.debug(`There are no tempIgnoreAreas for test run ${id}.`);
-    }
-    let ignoreAreas = [];
-    try {
-      ignoreAreas = JSON.parse(previousTestRuns[0].ignoreAreas).map(({ id, ...rest }) => rest);
-      this.logger.debug(`Parsing ignore areas: ${JSON.stringify(ignoreAreas)}.`);
-    } catch {
-      this.logger.debug(`There are no ignoreAreas for test run ${id}.`);
-    }
-    let allIgnoreAreas = ignoreAreas.concat(tempIgnoreAreas);
-    allIgnoreAreas.forEach((item) => {
-      const id = Date.now() - Math.floor(Math.random() * 10000) + 1;
-      item.id = id.toString();
-    });
+    // The approved baseline keeps every area it had: the target branch's (which may have gained
+    // areas since the feature branch was cut), this run's own, and the feature branch's last
+    // approved run's. Taking only the feature branch's dropped the others for every later run.
+    const [featureRun] = previousTestRuns;
+    const allIgnoreAreas = mergeIgnoreAreas(
+      parseIgnoreAreas(testVariation.ignoreAreas),
+      parseIgnoreAreas(testRun.ignoreAreas),
+      parseIgnoreAreas(testRun.tempIgnoreAreas),
+      parseIgnoreAreas(featureRun?.ignoreAreas),
+      parseIgnoreAreas(featureRun?.tempIgnoreAreas)
+    );
 
     await this.update(id, {
       comment: testRun.comment,
       tempIgnoreAreas: JSON.stringify([]),
-      ignoreAreas: JSON.stringify([]),
     });
 
     try {
