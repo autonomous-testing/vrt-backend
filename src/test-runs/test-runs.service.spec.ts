@@ -1,3 +1,4 @@
+import { PNG } from 'pngjs';
 import { mocked } from 'jest-mock';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestRunsService } from './test-runs.service';
@@ -706,5 +707,76 @@ describe('TestRunsService', () => {
         status: TestStatus.autoApproved,
       });
     });
+  });
+});
+
+// Approving a merge run (the feature branch's baseline compared on the target branch) used to
+// replace the target baseline's ignore areas with the feature branch's last approved run's,
+// so an area added on the target branch after the branch was cut stopped being ignored.
+describe('approveWithIgnoreAreasFromFeatureBranch keeps the target branch areas', () => {
+  const X = { x: 10, y: 10, width: 80, height: 40 };
+  const Y = { x: 150, y: 20, width: 60, height: 50 };
+  const Z = { x: 300, y: 120, width: 60, height: 50 };
+
+  async function approve({ targetAreas, runAreas, featureAreas, featureTempAreas = [] }) {
+    const mergeRun = {
+      ...generateTestRun(),
+      id: 'merge run',
+      branchName: 'master',
+      ignoreAreas: JSON.stringify(runAreas),
+      tempIgnoreAreas: '[]',
+      testVariation: { ...generateTestVariation(), id: 'target variation', ignoreAreas: JSON.stringify(targetAreas) },
+    };
+    const featureRun = {
+      ...generateTestRun(),
+      branchName: 'feature',
+      ignoreAreas: JSON.stringify(featureAreas),
+      tempIgnoreAreas: JSON.stringify(featureTempAreas),
+    };
+    const service = await initService({
+      testRunFindManyMock: jest.fn().mockResolvedValueOnce([featureRun]),
+      getImageMock: jest.fn().mockReturnValue(new PNG({ width: 1, height: 1 })),
+      saveImageMock: jest.fn().mockReturnValue('baseline name'),
+    });
+    service.findOne = jest.fn().mockResolvedValue(mergeRun);
+    service.update = jest.fn();
+    service.updateIgnoreAreas = jest.fn();
+    service.setStatus = jest.fn();
+    service['testVariationService'].addBaseline = jest.fn();
+
+    await service.approveWithIgnoreAreasFromFeatureBranch(mergeRun.id, 'feature');
+
+    const [, saved] = (service.updateIgnoreAreas as jest.Mock).mock.calls[0];
+    return {
+      areas: saved.map(({ id, ...area }) => area),
+      ids: saved.map(({ id }) => id),
+      update: (service.update as jest.Mock).mock.calls[0][1],
+    };
+  }
+
+  it('keeps an area added on the target branch after the feature branch was cut', async () => {
+    const { areas } = await approve({ targetAreas: [X, Y], runAreas: [X, Y, X], featureAreas: [X] });
+
+    expect(areas).toEqual([X, Y]);
+  });
+
+  it("adds the feature branch's own areas, once each", async () => {
+    const { areas, ids } = await approve({
+      targetAreas: [{ ...X, id: 'x' }],
+      runAreas: [],
+      featureAreas: [Z],
+      featureTempAreas: [X],
+    });
+
+    expect(areas).toEqual([X, Z]);
+    expect(ids[0]).toBe('x');
+    expect(ids[1]).toEqual(expect.any(String));
+  });
+
+  it('no longer blanks the run and its baseline before saving the areas', async () => {
+    const { update } = await approve({ targetAreas: [X], runAreas: [X], featureAreas: [] });
+
+    expect(update).not.toHaveProperty('ignoreAreas');
+    expect(update.tempIgnoreAreas).toBe('[]');
   });
 });
